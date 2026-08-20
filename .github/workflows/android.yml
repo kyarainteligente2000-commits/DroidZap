@@ -1,4 +1,4 @@
-name: Validar Droid Zap 0.7 experimental
+name: Validar Droid Zap 0.7 assinado
 
 on:
   push:
@@ -18,7 +18,7 @@ jobs:
       - name: Extrair código 0.7.0-dev
         run: |
           mkdir project
-          unzip -o DroidZap-source-0.7.0-dev6.zip -d project
+          unzip -o DroidZap-source-0.7.0-dev7.zip -d project
 
       - name: Configurar Java 17
         uses: actions/setup-java@v5
@@ -41,19 +41,33 @@ jobs:
           mkdir -p ../../app/libs
           gomobile bind -target=android -androidapi=30 -o ../../app/libs/droidzapbridge.aar ./bridge
 
+      - name: Restaurar chave privada de assinatura
+        run: echo "${{ secrets.DROIDZAP_KEYSTORE_BASE64 }}" | base64 --decode > project/app/droidzap-release.jks
+
       - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
 
-      - name: Compilar e verificar
-        run: gradle -p project --no-daemon lint assembleDebug
+      - name: Compilar, verificar e assinar
+        env:
+          DROIDZAP_KEYSTORE_PATH: droidzap-release.jks
+          DROIDZAP_KEYSTORE_PASSWORD: ${{ secrets.DROIDZAP_KEYSTORE_PASSWORD }}
+          DROIDZAP_KEY_ALIAS: ${{ secrets.DROIDZAP_KEY_ALIAS }}
+          DROIDZAP_KEY_PASSWORD: ${{ secrets.DROIDZAP_KEY_PASSWORD }}
+        run: gradle -p project --no-daemon lintRelease assembleRelease
 
-      - name: Renomear APK experimental
-        run: cp project/app/build/outputs/apk/debug/app-debug.apk DroidZap-0.7.0-dev.apk
+      - name: Validar certificado da APK
+        run: |
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          "$APKSIGNER" verify --verbose --print-certs project/app/build/outputs/apk/release/app-release.apk | tee signing.txt
+          grep -qi "7c1179ff83e55f98d6fe116b206c9a7ebd03782c8b1aff0909a5b0819d38e3af" signing.txt
 
-      - name: Disponibilizar APK de teste
+      - name: Renomear APK assinada
+        run: cp project/app/build/outputs/apk/release/app-release.apk DroidZap-0.7.0-dev-signed.apk
+
+      - name: Disponibilizar APK de teste assinada
         uses: actions/upload-artifact@v4
         with:
-          name: DroidZap-0.7.0-dev
-          path: DroidZap-0.7.0-dev.apk
+          name: DroidZap-0.7.0-dev-signed
+          path: DroidZap-0.7.0-dev-signed.apk
