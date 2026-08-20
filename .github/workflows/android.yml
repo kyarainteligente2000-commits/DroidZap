@@ -1,4 +1,4 @@
-name: Gerar APK do Droid Zap
+name: Validar Droid Zap 0.7 experimental
 
 on:
   push:
@@ -14,23 +14,46 @@ jobs:
     steps:
       - name: Baixar repositório
         uses: actions/checkout@v4
-      - name: Extrair projeto
-        run: unzip -q DroidZap-source-0.6.3.zip -d project
+
+      - name: Extrair código 0.7.0-dev
+        run: |
+          mkdir project
+          unzip DroidZap-source-0.7.0-dev.zip -d project
+
       - name: Configurar Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
+
+      - name: Configurar Go 1.25
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.x"
+
+      - name: Gerar biblioteca Android do protocolo
+        working-directory: project/protocol/go
+        run: |
+          go mod download
+          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gobind@latest
+          gomobile init
+          mkdir -p ../../app/libs
+          gomobile bind -target=android -androidapi=30 -o ../../app/libs/droidzapbridge.aar ./bridge
+
       - name: Configurar Gradle 8.11.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
-      - name: Validar e compilar
+
+      - name: Compilar e verificar
         run: gradle -p project --no-daemon lint assembleDebug
-      - name: Preparar APK
-        run: cp project/app/build/outputs/apk/debug/app-debug.apk DroidZap-0.6.3-debug.apk
-      - name: Disponibilizar APK
+
+      - name: Renomear APK experimental
+        run: cp project/app/build/outputs/apk/debug/app-debug.apk DroidZap-0.7.0-dev.apk
+
+      - name: Disponibilizar APK de teste
         uses: actions/upload-artifact@v4
         with:
-          name: DroidZap-0.6.3-debug
-          path: DroidZap-0.6.3-debug.apk
+          name: DroidZap-0.7.0-dev
+          path: DroidZap-0.7.0-dev.apk
