@@ -1,8 +1,8 @@
-name: Validar Droid Zap 0.8 RC1 assinada
+name: Validar Droid Zap 0.8 RC2 assinada
 
 on:
   push:
-    branches: [main, codex/droidzap-0.8.0-rc1]
+    branches: [main, codex/droidzap-0.8.0-rc2]
   workflow_dispatch:
 
 permissions:
@@ -15,10 +15,10 @@ jobs:
       - name: Baixar repositório
         uses: actions/checkout@v4
 
-      - name: Extrair código 0.8.0-rc1
+      - name: Extrair código 0.8.0-rc2
         run: |
           mkdir project
-          unzip -o DroidZap-source-0.8.0-rc1.zip -d project
+          unzip -o DroidZap-source-0.8.0-rc2.zip -d project
 
       - name: Configurar Java 17
         uses: actions/setup-java@v5
@@ -64,10 +64,10 @@ jobs:
           grep -qi "7c1179ff83e55f98d6fe116b206c9a7ebd03782c8b1aff0909a5b0819d38e3af" signing.txt
 
       - name: Renomear APK assinada
-        run: cp project/app/build/outputs/apk/release/app-release.apk DroidZap-0.8.0-rc1-signed.apk
+        run: cp project/app/build/outputs/apk/release/app-release.apk DroidZap-0.8.0-rc2-signed.apk
 
-      - name: Disponibilizar APK 0.8 RC1 assinada
+      - name: Disponibilizar APK 0.8 RC2 assinada
         uses: actions/upload-artifact@v4
         with:
-          name: DroidZap-0.8.0-rc1-signed
-          path: DroidZap-0.8.0-rc1-signed.apk
+          name: DroidZap-0.8.0-rc2-signed
+          path: DroidZap-0.8.0-rc2-signed.apk
